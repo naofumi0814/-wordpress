@@ -1,0 +1,311 @@
+/*
+ * Floating CTA Banner – fcb.css
+ * Vanilla CSS, no external dependencies.
+ * Uses CSS custom properties (variables) for colours set inline via PHP.
+ */
+
+/* -----------------------------------------------------------------
+ * Reset / base
+ * --------------------------------------------------------------- */
+#fcb-banner,
+#fcb-banner *,
+#fcb-banner *::before,
+#fcb-banner *::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+/* -----------------------------------------------------------------
+ * Wrapper – position: fixed base
+ * Position variants are applied by JS via data-position attribute,
+ * but we provide CSS classes as well for no-JS fallback.
+ * --------------------------------------------------------------- */
+#fcb-banner {
+	position: fixed;
+	z-index: 99999;
+	left: 0;
+	right: 0;
+	bottom: 0;
+
+	background-color: var(--fcb-bg, #1a73e8);
+	color: var(--fcb-color, #ffffff);
+
+	font-family: inherit;
+	font-size: 15px;
+	line-height: 1.4;
+
+	/* iOS safe area for bottom bar */
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+
+	/* Smooth appear/disappear */
+	transition: opacity 0.3s ease, transform 0.3s ease;
+	opacity: 1;
+}
+
+/* -----------------------------------------------------------------
+ * Hidden state (initial / dismissed / below scroll threshold)
+ * --------------------------------------------------------------- */
+#fcb-banner.fcb-hidden {
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(20px);
+}
+
+/* Keep top-positioned banners sliding up, not down */
+#fcb-banner[data-position="top"].fcb-hidden,
+#fcb-banner[data-position="top-left"].fcb-hidden,
+#fcb-banner[data-position="top-right"].fcb-hidden {
+	transform: translateY(-20px);
+}
+
+/* -----------------------------------------------------------------
+ * Position variants
+ * --------------------------------------------------------------- */
+
+/* Full-width top */
+#fcb-banner[data-position="top"] {
+	top: 0;
+	bottom: auto;
+	left: 0;
+	right: 0;
+	padding-bottom: 0;
+	padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Corner variants – auto width, not full-width */
+#fcb-banner[data-position="bottom-left"] {
+	bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+	left: 16px;
+	right: auto;
+	border-radius: 8px;
+}
+
+#fcb-banner[data-position="bottom-right"] {
+	bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+	right: 16px;
+	left: auto;
+	border-radius: 8px;
+}
+
+#fcb-banner[data-position="top-left"] {
+	top: calc(16px + env(safe-area-inset-top, 0px));
+	left: 16px;
+	bottom: auto;
+	right: auto;
+	border-radius: 8px;
+	padding-bottom: 0;
+}
+
+#fcb-banner[data-position="top-right"] {
+	top: calc(16px + env(safe-area-inset-top, 0px));
+	right: 16px;
+	bottom: auto;
+	left: auto;
+	border-radius: 8px;
+	padding-bottom: 0;
+}
+
+/* -----------------------------------------------------------------
+ * Width modes
+ * Applied by JS. CSS classes provided for reference.
+ * --------------------------------------------------------------- */
+
+/* auto – wraps content */
+#fcb-banner.fcb-width-auto {
+	width: auto;
+	left: auto;
+	right: auto;
+}
+
+/* full – default: left:0; right:0 (already set) */
+#fcb-banner.fcb-width-full {
+	left: 0;
+	right: 0;
+	width: 100%;
+}
+
+/* fixed – width set inline by JS/PHP */
+
+/* -----------------------------------------------------------------
+ * Inner layout
+ * --------------------------------------------------------------- */
+.fcb-inner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 10px 16px;
+	padding: 12px 48px 12px 20px; /* right-padding leaves room for close btn */
+	width: 100%;
+}
+
+/* When banner is auto/fixed width corner, center the inner */
+#fcb-banner[data-position="bottom-left"] .fcb-inner,
+#fcb-banner[data-position="bottom-right"] .fcb-inner,
+#fcb-banner[data-position="top-left"] .fcb-inner,
+#fcb-banner[data-position="top-right"] .fcb-inner {
+	padding: 12px 44px 12px 16px;
+}
+
+/* -----------------------------------------------------------------
+ * Full-banner link (when no button text)
+ * --------------------------------------------------------------- */
+.fcb-link-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 10px 16px;
+	width: 100%;
+	color: inherit;
+	text-decoration: none;
+}
+
+.fcb-link-wrap:hover,
+.fcb-link-wrap:focus {
+	opacity: 0.9;
+	text-decoration: underline;
+}
+
+/* -----------------------------------------------------------------
+ * Content wrapper
+ * --------------------------------------------------------------- */
+.fcb-content-wrap {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	flex: 1 1 auto;
+}
+
+/* -----------------------------------------------------------------
+ * Text
+ * --------------------------------------------------------------- */
+.fcb-texts {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.fcb-main-text {
+	font-size: 1em;
+	font-weight: 700;
+	color: var(--fcb-color, #ffffff);
+}
+
+.fcb-sub-text {
+	font-size: 0.82em;
+	font-weight: 400;
+	color: var(--fcb-color, #ffffff);
+	opacity: 0.88;
+}
+
+/* -----------------------------------------------------------------
+ * CTA Button
+ * --------------------------------------------------------------- */
+.fcb-btn {
+	display: inline-block;
+	padding: 9px 22px;
+	background-color: var(--fcb-btn-bg, #ff5722);
+	color: #ffffff;
+	font-size: 0.9em;
+	font-weight: 700;
+	text-decoration: none;
+	border-radius: 4px;
+	white-space: nowrap;
+	transition: filter 0.2s ease, transform 0.1s ease;
+	flex-shrink: 0;
+}
+
+.fcb-btn:hover,
+.fcb-btn:focus {
+	filter: brightness(1.1);
+	transform: translateY(-1px);
+	color: #ffffff;
+	text-decoration: none;
+}
+
+.fcb-btn:active {
+	transform: translateY(0);
+	filter: brightness(0.95);
+}
+
+/* -----------------------------------------------------------------
+ * Close button
+ * --------------------------------------------------------------- */
+.fcb-close {
+	position: absolute;
+	top: 50%;
+	right: 12px;
+	transform: translateY(-50%);
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: 28px;
+	height: 28px;
+	padding: 0;
+
+	background: rgba(255, 255, 255, 0.2);
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	border-radius: 50%;
+
+	color: var(--fcb-color, #ffffff);
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	z-index: 1;
+
+	transition: background 0.2s ease;
+}
+
+.fcb-close:hover,
+.fcb-close:focus {
+	background: rgba(255, 255, 255, 0.35);
+	outline: none;
+}
+
+/* Corner-positioned – align top-right of the card */
+#fcb-banner[data-position="bottom-left"] .fcb-close,
+#fcb-banner[data-position="bottom-right"] .fcb-close,
+#fcb-banner[data-position="top-left"] .fcb-close,
+#fcb-banner[data-position="top-right"] .fcb-close {
+	top: 6px;
+	right: 6px;
+	transform: none;
+}
+
+/* -----------------------------------------------------------------
+ * Responsive helpers
+ * (JS applies fcb-is-mobile class to banner based on breakpointPx)
+ * --------------------------------------------------------------- */
+@media (max-width: 480px) {
+	.fcb-inner {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+		padding: 10px 44px 10px 14px;
+	}
+
+	.fcb-btn {
+		text-align: center;
+	}
+
+	.fcb-link-wrap {
+		flex-direction: column;
+		gap: 6px;
+	}
+}
+
+/* -----------------------------------------------------------------
+ * Accessibility: respect reduced motion
+ * --------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+	#fcb-banner,
+	.fcb-btn,
+	.fcb-close {
+		transition: none;
+	}
+}
