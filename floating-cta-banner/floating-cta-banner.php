@@ -45,9 +45,9 @@ function fcb_get_settings(): array {
 		'button_text'           => 'お問い合わせ',
 		'link_url'              => '',
 		'link_target'           => '_self',
-		'bg_color'              => '#1a73e8',
-		'text_color'            => '#ffffff',
-		'button_color'          => '#ff5722',
+		'bg_color'              => '#0f172a',  // ダークネイビー（新デザインデフォルト）
+		'text_color'            => '#f1f5f9',
+		'button_color'          => '#6366f1',  // インディゴ
 		'show_on'               => 'all',
 		'include_page_ids'      => '',
 		'include_category_ids'  => '',

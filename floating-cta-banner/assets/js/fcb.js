@@ -124,10 +124,17 @@
 
 	/**
 	 * Save dismiss timestamp in localStorage.
-	 * @param {number} days Number of days to persist the dismissed state.
+	 * @param {number} days Number of days. 0 = no storage (reappears on reload).
 	 */
 	function saveDismiss( days ) {
+		if ( days === 0 ) {
+			// 0日 = 記憶しない。fcb-hidden クラスで今回のページ閲覧中だけ非表示。
+			// localStorage には書かないのでリロード後に再表示される。
+			fcbLog( '③ dismiss保存スキップ: days=0 → リロードで再表示モード' );
+			return;
+		}
 		const expiry = Date.now() + days * 24 * 60 * 60 * 1000;
+		fcbLog( '③ dismiss保存', { days, expiry: new Date( expiry ).toLocaleString() } );
 		lsSet( STORAGE_KEY, String( expiry ) );
 	}
 

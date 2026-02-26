@@ -146,9 +146,10 @@ function fcb_sanitize_settings( mixed $raw ): array {
 		'show_after_scroll_px' => fcb_sanitize_positive_int( $raw['show_after_scroll_px'] ?? 200, 0 ),
 
 		// --- Dismiss ---
+		// '0' = 閉じてもリロードで再表示（localStorage未保存）
 		'dismiss_days'         => fcb_sanitize_select(
 			$raw['dismiss_days'] ?? '',
-			[ '1', '7', '30' ],
+			[ '0', '1', '7', '30' ],
 			'7'
 		),
 

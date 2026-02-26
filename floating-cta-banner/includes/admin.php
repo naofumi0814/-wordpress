@@ -491,6 +491,7 @@ function fcb_field_show_close_button(): void {
 function fcb_field_dismiss_days(): void {
 	$current = (string) fcb_get_opt( 'dismiss_days' );
 	$options = [
+		'0'  => __( 'リロードで再表示（記憶しない）', 'floating-cta-banner' ),
 		'1'  => __( '1日', 'floating-cta-banner' ),
 		'7'  => __( '7日', 'floating-cta-banner' ),
 		'30' => __( '30日', 'floating-cta-banner' ),
@@ -503,7 +504,9 @@ function fcb_field_dismiss_days(): void {
 		</option>
 		<?php endforeach; ?>
 	</select>
-	<p class="description"><?php esc_html_e( '閉じた後、次に表示されるまでの日数。', 'floating-cta-banner' ); ?></p>
+	<p class="description">
+		<?php esc_html_e( '「リロードで再表示」を選ぶと×ボタンで閉じても再読み込み後にバナーが戻ります。日数を選ぶとその期間は再表示されません。', 'floating-cta-banner' ); ?>
+	</p>
 	<?php
 }
 
