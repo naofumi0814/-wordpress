@@ -154,5 +154,8 @@ function fcb_sanitize_settings( mixed $raw ): array {
 
 		// --- Custom CSS ---
 		'custom_css'           => wp_strip_all_tags( $raw['custom_css'] ?? '' ),
+
+		// --- Debug mode (管理画面でONにしたときのみerror_log/console.logを出力) ---
+		'fcb_debug'            => ! empty( $raw['fcb_debug'] ) ? 1 : 0,
 	];
 }

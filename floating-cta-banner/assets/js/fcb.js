@@ -31,9 +31,38 @@
 			posMobile:    'bottom',
 			widthMode:    'full',
 			widthFixedPx: 400,
+			debug:        false, // PHP fcb_debug=1 のときtrue
 		},
 		typeof fcbConfig !== 'undefined' ? fcbConfig : {}
 	);
+
+	// -----------------------------------------------------------------------
+	// Debug logger – console.log は fcb_debug=ON のときのみ
+	// -----------------------------------------------------------------------
+	function fcbLog( message, data ) {
+		if ( ! cfg.debug ) {
+			return;
+		}
+		if ( data !== undefined ) {
+			// eslint-disable-next-line no-console
+			console.log( '[FCB] ' + message, data );
+		} else {
+			// eslint-disable-next-line no-console
+			console.log( '[FCB] ' + message );
+		}
+	}
+
+	// ①設定値の読み取り確認
+	fcbLog( 'fcbConfig 読み込み完了', {
+		scrollPx:     cfg.scrollPx,
+		dismissDays:  cfg.dismissDays,
+		breakpointPx: cfg.breakpointPx,
+		posDesktop:   cfg.posDesktop,
+		posMobile:    cfg.posMobile,
+		widthMode:    cfg.widthMode,
+		widthFixedPx: cfg.widthFixedPx,
+		fcbConfigRaw: typeof fcbConfig !== 'undefined' ? fcbConfig : '(undefined – wp_localize_script 未実行)',
+	} );
 
 	// -----------------------------------------------------------------------
 	// Helpers
@@ -72,14 +101,25 @@
 	 */
 	function isDismissed() {
 		const raw = lsGet( STORAGE_KEY );
+
+		// ③dismiss判定ログ
 		if ( ! raw ) {
+			fcbLog( '③ dismiss判定: localStorage に fcb_dismissed なし → 非dismiss' );
 			return false;
 		}
 		const ts = parseInt( raw, 10 );
 		if ( isNaN( ts ) ) {
+			fcbLog( '③ dismiss判定: localStorage 値が不正 → 非dismiss', { raw } );
 			return false;
 		}
-		return Date.now() < ts;
+		const dismissed = Date.now() < ts;
+		fcbLog( '③ dismiss判定', {
+			storedExpiry:    new Date( ts ).toLocaleString(),
+			now:             new Date().toLocaleString(),
+			remainingMs:     ts - Date.now(),
+			isDismissed:     dismissed,
+		} );
+		return dismissed;
 	}
 
 	/**
@@ -197,8 +237,18 @@
 	// Main init
 	// -----------------------------------------------------------------------
 	function init() {
+		// ①要素取得確認
 		const banner = document.getElementById( BANNER_ID );
+		fcbLog( '①要素取得', {
+			found:        !! banner,
+			id:           BANNER_ID,
+			classList:    banner ? Array.from( banner.classList ).join( ' ' ) : '(なし)',
+			dataPosition: banner ? ( banner.dataset.position || '(未設定)' ) : '(なし)',
+			computedDisplay: banner ? window.getComputedStyle( banner ).display : '(なし)',
+		} );
+
 		if ( ! banner ) {
+			fcbLog( '①要素なし: #fcb-banner が DOM に存在しない。wp_footer が呼ばれているか、テーマがwp_footer()を呼んでいるか確認してください。' );
 			return; // Banner not on this page
 		}
 
@@ -208,17 +258,31 @@
 		// If previously dismissed, do not show
 		if ( isDismissed() ) {
 			// Keep element in DOM but never show (CSS already hides it)
+			fcbLog( '③ dismiss有効期間内 → バナーを表示しない。リセットするには: localStorage.removeItem("fcb_dismissed")' );
 			return;
 		}
 
 		// Apply position + width
 		applyPosition( banner );
+		fcbLog( 'applyPosition 完了', {
+			dataPosition: banner.getAttribute( 'data-position' ),
+			classList:    Array.from( banner.classList ).join( ' ' ),
+			inlineWidth:  banner.style.width,
+		} );
 
 		// ---- Scroll-reveal logic ----
 		const threshold = parseInt( String( cfg.scrollPx ), 10 );
+		fcbLog( '④ スクロール閾値設定', {
+			threshold,
+			currentScrollY: scrollY(),
+			willShowNow:    threshold <= 0 || scrollY() >= threshold,
+		} );
 
 		function checkScroll() {
-			if ( scrollY() >= threshold ) {
+			const sy = scrollY();
+			const shouldShow = sy >= threshold;
+			fcbLog( '④ scroll イベント', { scrollY: sy, threshold, shouldShow } );
+			if ( shouldShow ) {
 				showBanner( banner );
 			} else {
 				hideBanner( banner );
@@ -227,6 +291,7 @@
 
 		if ( threshold <= 0 ) {
 			// Show immediately
+			fcbLog( '④ threshold=0 → 即時表示' );
 			showBanner( banner );
 		} else {
 			// Check on load and listen for scroll
@@ -234,10 +299,25 @@
 			window.addEventListener( 'scroll', checkScroll, { passive: true } );
 		}
 
+		// ②hidden解除確認 (showBanner 後にクラスを確認)
+		setTimeout( function () {
+			fcbLog( '② hidden解除後の状態確認', {
+				hasFcbHidden:    banner.classList.contains( 'fcb-hidden' ),
+				computedOpacity: window.getComputedStyle( banner ).opacity,
+				computedVisibility: window.getComputedStyle( banner ).visibility,
+				computedDisplay: window.getComputedStyle( banner ).display,
+				computedZIndex:  window.getComputedStyle( banner ).zIndex,
+				computedPosition: window.getComputedStyle( banner ).position,
+				boundingRect:    JSON.stringify( banner.getBoundingClientRect() ),
+			} );
+		}, 500 );
+
 		// ---- Close button ----
 		const closeBtn = banner.querySelector( '.fcb-close' );
+		fcbLog( 'close button 取得', { found: !! closeBtn } );
 		if ( closeBtn ) {
 			closeBtn.addEventListener( 'click', function () {
+				fcbLog( '× ボタン クリック → dismiss保存', { dismissDays } );
 				hideBanner( banner );
 				saveDismiss( dismissDays );
 
@@ -252,6 +332,11 @@
 			clearTimeout( resizeTimer );
 			resizeTimer = setTimeout( function () {
 				applyPosition( banner );
+				fcbLog( 'resize → applyPosition', {
+					windowWidth:  window.innerWidth,
+					isMobile:     isMobile(),
+					dataPosition: banner.getAttribute( 'data-position' ),
+				} );
 			}, 100 );
 		} );
 	}

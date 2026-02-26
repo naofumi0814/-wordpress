@@ -111,11 +111,22 @@
  * Applied by JS. CSS classes provided for reference.
  * --------------------------------------------------------------- */
 
-/* auto – wraps content */
+/* auto – wraps content
+ * [FIX-B4] left/right を auto に上書きすると corner position の
+ * left:16px / right:16px が打ち消される。
+ * corner用に幅だけautoにし、left/rightはposition CSSに委ねる。
+ * 非corner (bottom/top full-width) の auto は margin:auto でセンタリング。
+ */
 #fcb-banner.fcb-width-auto {
 	width: auto;
-	left: auto;
+}
+
+/* full-width position での auto → 中央寄せ */
+#fcb-banner[data-position="bottom"].fcb-width-auto,
+#fcb-banner[data-position="top"].fcb-width-auto {
+	left: 50%;
 	right: auto;
+	transform: translateX(-50%);
 }
 
 /* full – default: left:0; right:0 (already set) */

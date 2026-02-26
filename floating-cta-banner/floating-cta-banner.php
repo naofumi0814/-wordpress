@@ -56,6 +56,8 @@ function fcb_get_settings(): array {
 		'show_close_button'     => 1,
 		'dismiss_days'          => 7,
 		'custom_css'            => '',
+		// ----- デバッグ設定 (本番ではOFF) -----
+		'fcb_debug'             => 0,
 	];
 
 	$saved = get_option( FCB_OPTION_KEY, [] );
@@ -64,22 +66,58 @@ function fcb_get_settings(): array {
 }
 
 /* -----------------------------------------------------------------------
+ * Debug logger – outputs only when fcb_debug = 1
+ * Uses WP_DEBUG_LOG / error_log. Never outputs on screen.
+ * --------------------------------------------------------------------- */
+function fcb_log( string $message, array $context = [] ): void {
+	static $debug = null;
+	if ( null === $debug ) {
+		$opts  = get_option( FCB_OPTION_KEY, [] );
+		$debug = ! empty( $opts['fcb_debug'] );
+	}
+	if ( ! $debug ) {
+		return;
+	}
+	$ctx = empty( $context ) ? '' : ' | ctx=' . wp_json_encode( $context, JSON_UNESCAPED_UNICODE );
+	error_log( '[FCB] ' . $message . $ctx ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions
+}
+
+/* -----------------------------------------------------------------------
  * Decide whether to output banner on current page
- * Returns 'plugin'|'shortcode'|false
+ * Returns 'plugin'|false
+ *
+ * [FIX-B1] shortcode path now returns false to prevent duplicate #fcb-banner.
+ *           The shortcode handler already output the HTML; wp_footer must skip.
+ * [FIX-B3] Removed dead inner `if(!is_singular('post'))` in posts branch.
  * --------------------------------------------------------------------- */
 function fcb_should_display( array $opts ): string|false {
 
-	// Always render if shortcode is in use (shortcode priority wins)
+	// [FIX-B1] Shortcode already rendered the banner HTML inline.
+	// If wp_footer also renders it, two elements share id="fcb-banner" →
+	// getElementById() returns the FIRST (inline, positional issues) one,
+	// and JS never controls the footer-rendered fixed one.
 	if ( did_action( 'fcb_shortcode_rendered' ) ) {
-		return 'shortcode';
+		fcb_log( 'fcb_should_display: shortcode already rendered → wp_footer output SKIPPED (B1 fix)' );
+		return false;
 	}
 
+	fcb_log( 'fcb_should_display: start', [
+		'enable'             => (int) $opts['enable'],
+		'hide_for_logged_in' => (int) $opts['hide_for_logged_in'],
+		'show_on'            => $opts['show_on'],
+		'is_user_logged_in'  => is_user_logged_in(),
+		'current_url'        => home_url( add_query_arg( [] ) ),
+		'queried_object_id'  => get_queried_object_id(),
+	] );
+
 	if ( empty( $opts['enable'] ) ) {
+		fcb_log( 'fcb_should_display: enable=0 → false' );
 		return false;
 	}
 
 	// Hide for logged-in users
 	if ( ! empty( $opts['hide_for_logged_in'] ) && is_user_logged_in() ) {
+		fcb_log( 'fcb_should_display: hide_for_logged_in=1 かつログイン中 → false' );
 		return false;
 	}
 
@@ -87,24 +125,29 @@ function fcb_should_display( array $opts ): string|false {
 	if ( ! is_admin() ) {
 		$show_on = $opts['show_on'];
 
+		// [FIX-B3] Removed dead `if(!is_singular('post'))` that appeared twice.
 		if ( 'posts' === $show_on && ! is_singular( 'post' ) ) {
-			// Also allow if we're checking category later
-			$cats = fcb_parse_id_list( $opts['include_category_ids'] );
-			if ( empty( $cats ) ) {
-				return false;
-			}
-			if ( ! is_singular( 'post' ) ) {
-				return false;
-			}
+			fcb_log( 'fcb_should_display: show_on=posts だが投稿単独でない → false', [
+				'is_singular_post' => is_singular( 'post' ),
+			] );
+			return false;
 		}
 
 		if ( 'pages' === $show_on && ! is_singular( 'page' ) ) {
+			fcb_log( 'fcb_should_display: show_on=pages だが固定ページでない → false' );
 			return false;
 		}
 
 		if ( 'specific_pages' === $show_on ) {
-			$ids = fcb_parse_id_list( $opts['include_page_ids'] );
-			if ( empty( $ids ) || ! is_singular() || ! in_array( get_the_ID(), $ids, true ) ) {
+			$ids        = fcb_parse_id_list( $opts['include_page_ids'] );
+			$current_id = get_the_ID();
+			fcb_log( 'fcb_should_display: specific_pages チェック', [
+				'allowed_ids' => array_values( $ids ),
+				'current_id'  => $current_id,
+				'matched'     => in_array( $current_id, $ids, true ),
+			] );
+			if ( empty( $ids ) || ! is_singular() || ! in_array( $current_id, $ids, true ) ) {
+				fcb_log( 'fcb_should_display: specific_pages 不一致 → false' );
 				return false;
 			}
 		}
@@ -113,12 +156,19 @@ function fcb_should_display( array $opts ): string|false {
 		if ( ! empty( $opts['include_category_ids'] ) && is_singular( 'post' ) ) {
 			$cat_ids   = fcb_parse_id_list( $opts['include_category_ids'] );
 			$post_cats = wp_get_post_categories( get_the_ID() );
+			fcb_log( 'fcb_should_display: カテゴリフィルタ', [
+				'required_cat_ids' => array_values( $cat_ids ),
+				'post_cat_ids'     => $post_cats,
+				'intersect'        => array_values( array_intersect( $cat_ids, $post_cats ) ),
+			] );
 			if ( ! array_intersect( $cat_ids, $post_cats ) ) {
+				fcb_log( 'fcb_should_display: カテゴリ不一致 → false' );
 				return false;
 			}
 		}
 	}
 
+	fcb_log( 'fcb_should_display: → plugin (バナーを表示する)' );
 	return 'plugin';
 }
 
@@ -142,12 +192,11 @@ add_action( 'wp_enqueue_scripts', 'fcb_enqueue_assets' );
 function fcb_enqueue_assets(): void {
 	$opts = fcb_get_settings();
 
-	// Check fast path: if plugin disabled AND no shortcode on this page,
-	// skip. Shortcode usage is detected at render time so we enqueue
-	// conservatively when shortcode is registered.
+	fcb_log( 'fcb_enqueue_assets: called', [ 'enable' => (int) $opts['enable'] ] );
+
 	if ( empty( $opts['enable'] ) ) {
-		// Still register so shortcode can enqueue manually via wp_enqueue.
-		// Assets are only truly needed when shortcode triggers output.
+		// Assets skipped. Shortcode will call fcb_do_enqueue() during the_content.
+		fcb_log( 'fcb_enqueue_assets: enable=0 → スキップ (shortcodeパスでは shortcode handler がenqueueする)' );
 		return;
 	}
 
@@ -155,6 +204,16 @@ function fcb_enqueue_assets(): void {
 }
 
 function fcb_do_enqueue( array $opts ): void {
+	// ガード: wp_footer 内（priority 20）で呼ばれた場合、wp_print_footer_scripts が
+	// 同じ priority 20 で先に走っている可能性がある。その場合スクリプトは出力されない。
+	// → 通常は wp_enqueue_scripts か shortcode (the_content) から呼ばれるため問題ない。
+	$doing_footer = did_action( 'wp_footer' );
+	fcb_log( 'fcb_do_enqueue: called', [
+		'doing_wp_footer'   => (bool) $doing_footer,
+		'already_enqueued'  => wp_style_is( 'fcb-style', 'enqueued' ),
+		'called_from'       => implode( ' → ', array_column( array_slice( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 4 ), 1 ), 'function' ) ),
+	] );
+
 	wp_enqueue_style(
 		'fcb-style',
 		FCB_PLUGIN_URL . 'assets/css/fcb.css',
@@ -182,26 +241,56 @@ function fcb_do_enqueue( array $opts ): void {
 			'posMobile'     => esc_js( $opts['position_mobile'] ),
 			'widthMode'     => esc_js( $opts['width_mode'] ),
 			'widthFixedPx'  => (int) $opts['width_fixed_px'],
+			// デバッグフラグをJSに渡す
+			'debug'         => ! empty( $opts['fcb_debug'] ),
 		]
 	);
+
+	fcb_log( 'fcb_do_enqueue: wp_enqueue_style / wp_enqueue_script / wp_localize_script 完了', [
+		'css_url' => FCB_PLUGIN_URL . 'assets/css/fcb.css',
+		'js_url'  => FCB_PLUGIN_URL . 'assets/js/fcb.js',
+	] );
 }
 
 /* -----------------------------------------------------------------------
  * Output banner HTML in wp_footer
+ *
+ * [FIX] Priority を 20→5 に変更。
+ *       wp_print_footer_scripts は priority 20 で登録されており、
+ *       同じ 20 で登録した場合はプラグイン側フックが後になり、
+ *       fcb_do_enqueue を呼んでも scripts が出力されない恐れがある。
+ *       Priority 5 にすることで wp_print_footer_scripts より先に実行される。
  * --------------------------------------------------------------------- */
-add_action( 'wp_footer', 'fcb_render_banner', 20 );
+add_action( 'wp_footer', 'fcb_render_banner', 5 );
 function fcb_render_banner(): void {
 	$opts   = fcb_get_settings();
+
+	fcb_log( 'fcb_render_banner: wp_footer フック開始 (priority=5)', [
+		'wp_print_footer_scripts_done' => did_action( 'wp_print_footer_scripts' ),
+		'fcb_style_enqueued'           => wp_style_is( 'fcb-style', 'enqueued' ),
+		'fcb_script_enqueued'          => wp_script_is( 'fcb-script', 'enqueued' ),
+	] );
+
 	$source = fcb_should_display( $opts );
 
 	if ( false === $source ) {
+		fcb_log( 'fcb_render_banner: fcb_should_display=false → HTML出力スキップ' );
 		return;
 	}
 
 	// Ensure assets are loaded even if enqueue was skipped (shortcode path)
 	if ( ! wp_style_is( 'fcb-style', 'enqueued' ) ) {
+		fcb_log( 'fcb_render_banner: CSS未enqueue → fcb_do_enqueue() 呼出し' );
 		fcb_do_enqueue( $opts );
 	}
+
+	fcb_log( 'fcb_render_banner: バナーHTML出力開始', [
+		'source'           => $source,
+		'main_text'        => $opts['main_text'],
+		'show_after_px'    => $opts['show_after_scroll_px'],
+		'show_close'       => (int) $opts['show_close_button'],
+		'dismiss_days'     => $opts['dismiss_days'],
+	] );
 
 	fcb_output_banner_html( $opts );
 
@@ -210,6 +299,8 @@ function fcb_render_banner(): void {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '<style id="fcb-custom-css">' . wp_strip_all_tags( $opts['custom_css'] ) . '</style>' . "\n";
 	}
+
+	fcb_log( 'fcb_render_banner: HTML出力完了' );
 }
 
 /* -----------------------------------------------------------------------
@@ -304,6 +395,10 @@ add_shortcode( 'floating_cta_banner', 'fcb_shortcode_handler' );
 function fcb_shortcode_handler( $atts ): string {
 	$opts = fcb_get_settings();
 
+	fcb_log( 'fcb_shortcode_handler: ショートコード検出', [
+		'fcb_style_already_enqueued' => wp_style_is( 'fcb-style', 'enqueued' ),
+	] );
+
 	// Allowed overrides via shortcode attributes
 	$allowed = [
 		'main_text', 'sub_text', 'button_text', 'link_url',
@@ -318,18 +413,28 @@ function fcb_shortcode_handler( $atts ): string {
 
 	$atts = shortcode_atts( $defaults, $atts, 'floating_cta_banner' );
 
-	// Enqueue assets if not done yet
+	// Enqueue assets if not done yet.
+	// この時点は the_content フィルタ処理中（wp_footer より前）なので
+	// wp_print_footer_scripts(priority 20) より確実に早い。
 	if ( ! wp_style_is( 'fcb-style', 'enqueued' ) ) {
+		fcb_log( 'fcb_shortcode_handler: CSS未enqueue → fcb_do_enqueue() 呼出し' );
 		fcb_do_enqueue( $opts );
 	}
 
-	// Signal that shortcode rendered (used by fcb_should_display)
+	// Signal that shortcode rendered.
+	// fcb_should_display() がこのフラグを検知して wp_footer での二重出力を防ぐ [FIX-B1]
 	do_action( 'fcb_shortcode_rendered' );
+
+	fcb_log( 'fcb_shortcode_handler: バナーHTML生成 (ob_start)' );
 
 	// Capture output
 	ob_start();
 	fcb_output_banner_html( $opts, $atts );
-	return (string) ob_get_clean();
+	$html = (string) ob_get_clean();
+
+	fcb_log( 'fcb_shortcode_handler: バナーHTML生成完了', [ 'html_length' => strlen( $html ) ] );
+
+	return $html;
 }
 
 /* -----------------------------------------------------------------------

@@ -37,6 +37,7 @@ function fcb_register_settings(): void {
 	);
 
 	fcb_add_field( 'enable',             __( 'バナーを有効化',         'floating-cta-banner' ), 'fcb_field_enable',             'fcb_section_general' );
+	fcb_add_field( 'fcb_debug',          __( 'デバッグモード',         'floating-cta-banner' ), 'fcb_field_fcb_debug',          'fcb_section_general' );
 
 	/* ---- Section: Layout ---- */
 	add_settings_section(
@@ -195,6 +196,34 @@ function fcb_field_enable(): void {
 		   <?php checked( 1, $val ); ?>
 	>
 	<label for="fcb_enable"><?php esc_html_e( 'バナーを有効にする', 'floating-cta-banner' ); ?></label>
+	<?php
+}
+
+/**
+ * デバッグモード ON/OFF フィールド。
+ * ONにすると PHP側は error_log() で、JS側は console.log() でデバッグ情報を出力します。
+ * 本番環境では必ずOFFにしてください。
+ */
+function fcb_field_fcb_debug(): void {
+	$val = fcb_get_opt( 'fcb_debug' );
+	?>
+	<input type="checkbox"
+		   id="fcb_fcb_debug"
+		   name="<?php echo esc_attr( FCB_OPTION_KEY ); ?>[fcb_debug]"
+		   value="1"
+		   <?php checked( 1, $val ); ?>
+	>
+	<label for="fcb_fcb_debug">
+		<?php esc_html_e( 'デバッグログを有効にする', 'floating-cta-banner' ); ?>
+	</label>
+	<p class="description">
+		<?php
+		esc_html_e(
+			'PHP: wp-content/debug.log に出力（WP_DEBUG_LOG=true 必須）。 JS: ブラウザコンソールに出力。本番では必ずOFFにしてください。',
+			'floating-cta-banner'
+		);
+		?>
+	</p>
 	<?php
 }
 
