@@ -63,7 +63,6 @@ function fcb_register_settings(): void {
 
 	fcb_add_field( 'main_text',          __( 'メインテキスト',         'floating-cta-banner' ), 'fcb_field_main_text',          'fcb_section_content' );
 	fcb_add_field( 'sub_text',           __( 'サブテキスト',           'floating-cta-banner' ), 'fcb_field_sub_text',           'fcb_section_content' );
-	fcb_add_field( 'button_text',        __( 'ボタン文言',             'floating-cta-banner' ), 'fcb_field_button_text',        'fcb_section_content' );
 	fcb_add_field( 'link_url',           __( 'リンクURL',              'floating-cta-banner' ), 'fcb_field_link_url',           'fcb_section_content' );
 	fcb_add_field( 'link_target',        __( 'リンクターゲット',       'floating-cta-banner' ), 'fcb_field_link_target',        'fcb_section_content' );
 
@@ -75,9 +74,9 @@ function fcb_register_settings(): void {
 		'fcb_settings_page'
 	);
 
-	fcb_add_field( 'bg_color',           __( '背景色',                 'floating-cta-banner' ), 'fcb_field_bg_color',           'fcb_section_colors' );
-	fcb_add_field( 'text_color',         __( '文字色',                 'floating-cta-banner' ), 'fcb_field_text_color',         'fcb_section_colors' );
-	fcb_add_field( 'button_color',       __( 'ボタン色',               'floating-cta-banner' ), 'fcb_field_button_color',       'fcb_section_colors' );
+	fcb_add_field( 'bg_color',           __( '背景グラデーション（色1）', 'floating-cta-banner' ), 'fcb_field_bg_color',    'fcb_section_colors' );
+	fcb_add_field( 'bg_color_2',         __( '背景グラデーション（色2）', 'floating-cta-banner' ), 'fcb_field_bg_color_2',  'fcb_section_colors' );
+	fcb_add_field( 'text_color',         __( '文字色',                    'floating-cta-banner' ), 'fcb_field_text_color',  'fcb_section_colors' );
 
 	/* ---- Section: Display Conditions ---- */
 	add_settings_section(
@@ -331,19 +330,6 @@ function fcb_field_sub_text(): void {
 	<?php
 }
 
-function fcb_field_button_text(): void {
-	$val = fcb_get_opt( 'button_text' );
-	?>
-	<input type="text"
-		   id="fcb_button_text"
-		   name="<?php echo esc_attr( FCB_OPTION_KEY ); ?>[button_text]"
-		   value="<?php echo esc_attr( $val ); ?>"
-		   class="regular-text"
-	>
-	<p class="description"><?php esc_html_e( '任意。空欄の場合はテキスト全体がリンクになります。', 'floating-cta-banner' ); ?></p>
-	<?php
-}
-
 function fcb_field_link_url(): void {
 	$val = fcb_get_opt( 'link_url' );
 	?>
@@ -372,15 +358,17 @@ function fcb_field_link_target(): void {
 /* ---- Colors ---- */
 
 function fcb_field_bg_color(): void {
-	fcb_render_color_input( 'bg_color', '#1a73e8' );
+	fcb_render_color_input( 'bg_color', '#0f172a' );
+	echo '<p class="description">' . esc_html__( 'グラデーション起点の色（左上）。2色を同じにすると単色になります。', 'floating-cta-banner' ) . '</p>';
+}
+
+function fcb_field_bg_color_2(): void {
+	fcb_render_color_input( 'bg_color_2', '#312e81' );
+	echo '<p class="description">' . esc_html__( 'グラデーション終点の色（右下）。', 'floating-cta-banner' ) . '</p>';
 }
 
 function fcb_field_text_color(): void {
-	fcb_render_color_input( 'text_color', '#ffffff' );
-}
-
-function fcb_field_button_color(): void {
-	fcb_render_color_input( 'button_color', '#ff5722' );
+	fcb_render_color_input( 'text_color', '#f1f5f9' );
 }
 
 function fcb_render_color_input( string $field, string $default ): void {
@@ -491,10 +479,10 @@ function fcb_field_show_close_button(): void {
 function fcb_field_dismiss_days(): void {
 	$current = (string) fcb_get_opt( 'dismiss_days' );
 	$options = [
-		'0'  => __( 'リロードで再表示（記憶しない）', 'floating-cta-banner' ),
-		'1'  => __( '1日', 'floating-cta-banner' ),
-		'7'  => __( '7日', 'floating-cta-banner' ),
-		'30' => __( '30日', 'floating-cta-banner' ),
+		'1'  => __( '1日間',                         'floating-cta-banner' ),
+		'7'  => __( '7日間',                         'floating-cta-banner' ),
+		'30' => __( '30日間',                        'floating-cta-banner' ),
+		'0'  => __( '常に（リロードで再表示）',     'floating-cta-banner' ),
 	];
 	?>
 	<select id="fcb_dismiss_days" name="<?php echo esc_attr( FCB_OPTION_KEY ); ?>[dismiss_days]">
@@ -505,7 +493,7 @@ function fcb_field_dismiss_days(): void {
 		<?php endforeach; ?>
 	</select>
 	<p class="description">
-		<?php esc_html_e( '「リロードで再表示」を選ぶと×ボタンで閉じても再読み込み後にバナーが戻ります。日数を選ぶとその期間は再表示されません。', 'floating-cta-banner' ); ?>
+		<?php esc_html_e( '「常に（リロードで再表示）」を選ぶと×で閉じても再読み込み後にバナーが戻ります。日数を選ぶとその期間は再表示されません。', 'floating-cta-banner' ); ?>
 	</p>
 	<?php
 }

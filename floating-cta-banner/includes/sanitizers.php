@@ -120,7 +120,6 @@ function fcb_sanitize_settings( mixed $raw ): array {
 		// --- Content ---
 		'main_text'            => sanitize_text_field( $raw['main_text'] ?? '' ),
 		'sub_text'             => sanitize_text_field( $raw['sub_text'] ?? '' ),
-		'button_text'          => sanitize_text_field( $raw['button_text'] ?? '' ),
 		'link_url'             => esc_url_raw( $raw['link_url'] ?? '' ),
 		'link_target'          => fcb_sanitize_select(
 			$raw['link_target'] ?? '',
@@ -128,10 +127,10 @@ function fcb_sanitize_settings( mixed $raw ): array {
 			'_self'
 		),
 
-		// --- Colors ---
-		'bg_color'             => fcb_sanitize_hex_color( $raw['bg_color'] ?? '#1a73e8', '#1a73e8' ),
-		'text_color'           => fcb_sanitize_hex_color( $raw['text_color'] ?? '#ffffff', '#ffffff' ),
-		'button_color'         => fcb_sanitize_hex_color( $raw['button_color'] ?? '#ff5722', '#ff5722' ),
+		// --- Colors (グラデーション2色 + 文字色) ---
+		'bg_color'             => fcb_sanitize_hex_color( $raw['bg_color'] ?? '#0f172a', '#0f172a' ),
+		'bg_color_2'           => fcb_sanitize_hex_color( $raw['bg_color_2'] ?? '#312e81', '#312e81' ),
+		'text_color'           => fcb_sanitize_hex_color( $raw['text_color'] ?? '#f1f5f9', '#f1f5f9' ),
 
 		// --- Display conditions ---
 		'show_on'              => fcb_sanitize_select(

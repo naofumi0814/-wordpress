@@ -42,12 +42,11 @@ function fcb_get_settings(): array {
 		'breakpoint_px'         => 768,
 		'main_text'             => '今すぐお問い合わせ',
 		'sub_text'              => '',
-		'button_text'           => 'お問い合わせ',
 		'link_url'              => '',
 		'link_target'           => '_self',
-		'bg_color'              => '#0f172a',  // ダークネイビー（新デザインデフォルト）
+		'bg_color'              => '#0f172a',  // グラデーション色1（左上）
+		'bg_color_2'            => '#312e81',  // グラデーション色2（右下）
 		'text_color'            => '#f1f5f9',
-		'button_color'          => '#6366f1',  // インディゴ
 		'show_on'               => 'all',
 		'include_page_ids'      => '',
 		'include_category_ids'  => '',
@@ -305,30 +304,47 @@ function fcb_render_banner(): void {
 
 /* -----------------------------------------------------------------------
  * Build and echo the banner HTML
+ *
+ * 構造:
+ *   #fcb-banner
+ *     └── .fcb-close (×ボタン, 任意)
+ *     └── <a>.fcb-link-wrap or <div>.fcb-link-wrap
+ *           ├── .fcb-main-text
+ *           └── .fcb-sub-text
+ *
+ * バナー全体がクリッカブルリンク。ボタンは廃止。
+ * テキストは横・縦ともにセンター揃え。
+ * 背景はグラデーション（--fcb-bg1 → --fcb-bg2, 135deg）。
  * --------------------------------------------------------------------- */
 function fcb_output_banner_html( array $opts, array $override = [] ): void {
 	$o = wp_parse_args( $override, $opts );
 
-	$main_text    = $o['main_text'];
-	$sub_text     = $o['sub_text'];
-	$button_text  = $o['button_text'];
-	$link_url     = $o['link_url'];
-	$link_target  = '_blank' === $o['link_target'] ? '_blank' : '_self';
-	$rel          = '_blank' === $link_target ? ' rel="noopener noreferrer"' : '';
-	$show_close   = ! empty( $o['show_close_button'] );
-	$has_link     = '' !== trim( $link_url );
+	$main_text   = $o['main_text'];
+	$sub_text    = $o['sub_text'];
+	$link_url    = $o['link_url'];
+	$link_target = '_blank' === $o['link_target'] ? '_blank' : '_self';
+	$rel         = '_blank' === $link_target ? ' rel="noopener noreferrer"' : '';
+	$show_close  = ! empty( $o['show_close_button'] );
+	$has_link    = '' !== trim( $link_url );
 
-	$bg_color     = $o['bg_color'];
-	$text_color   = $o['text_color'];
-	$button_color = $o['button_color'];
-
-	// Inline style for the wrapper
+	// CSS カスタムプロパティ: グラデーション2色 + 文字色
 	$inline_style = sprintf(
-		'--fcb-bg:%s;--fcb-color:%s;--fcb-btn-bg:%s;',
-		esc_attr( $bg_color ),
-		esc_attr( $text_color ),
-		esc_attr( $button_color )
+		'--fcb-bg1:%s;--fcb-bg2:%s;--fcb-color:%s;',
+		esc_attr( $o['bg_color'] ),
+		esc_attr( $o['bg_color_2'] ),
+		esc_attr( $o['text_color'] )
 	);
+
+	// リンクあり → <a> タグ全体、なし → <div>（クリック不可）
+	$tag      = $has_link ? 'a' : 'div';
+	$tag_attr = $has_link
+		? sprintf(
+			' href="%s" target="%s"%s',
+			esc_url( $link_url ),
+			esc_attr( $link_target ),
+			$rel // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		)
+		: '';
 
 	?>
 	<div id="fcb-banner"
@@ -345,45 +361,14 @@ function fcb_output_banner_html( array $opts, array $override = [] ): void {
 		>&times;</button>
 		<?php endif; ?>
 
-		<div class="fcb-inner">
-			<?php if ( $has_link && '' === trim( $button_text ) ) : ?>
-				<?php /* Full-banner link when no button text */ ?>
-				<a class="fcb-link-wrap"
-				   href="<?php echo esc_url( $link_url ); ?>"
-				   target="<?php echo esc_attr( $link_target ); ?>"
-				   <?php echo $rel; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-				>
-					<?php fcb_banner_content( $main_text, $sub_text ); ?>
-				</a>
-			<?php else : ?>
-				<div class="fcb-content-wrap">
-					<?php fcb_banner_content( $main_text, $sub_text ); ?>
-				</div>
-				<?php if ( $has_link && '' !== trim( $button_text ) ) : ?>
-				<a class="fcb-btn"
-				   href="<?php echo esc_url( $link_url ); ?>"
-				   target="<?php echo esc_attr( $link_target ); ?>"
-				   <?php echo $rel; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-				><?php echo esc_html( $button_text ); ?></a>
-				<?php endif; ?>
+		<<?php echo esc_attr( $tag ); ?> class="fcb-link-wrap"<?php echo $tag_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+			<?php if ( '' !== $main_text ) : ?>
+			<span class="fcb-main-text"><?php echo esc_html( $main_text ); ?></span>
 			<?php endif; ?>
-		</div>
-	</div>
-	<?php
-}
-
-/* -----------------------------------------------------------------------
- * Helper: banner text content
- * --------------------------------------------------------------------- */
-function fcb_banner_content( string $main_text, string $sub_text ): void {
-	?>
-	<div class="fcb-texts">
-		<?php if ( '' !== $main_text ) : ?>
-		<span class="fcb-main-text"><?php echo esc_html( $main_text ); ?></span>
-		<?php endif; ?>
-		<?php if ( '' !== $sub_text ) : ?>
-		<span class="fcb-sub-text"><?php echo esc_html( $sub_text ); ?></span>
-		<?php endif; ?>
+			<?php if ( '' !== $sub_text ) : ?>
+			<span class="fcb-sub-text"><?php echo esc_html( $sub_text ); ?></span>
+			<?php endif; ?>
+		</<?php echo esc_attr( $tag ); ?>>
 	</div>
 	<?php
 }
@@ -401,8 +386,8 @@ function fcb_shortcode_handler( $atts ): string {
 
 	// Allowed overrides via shortcode attributes
 	$allowed = [
-		'main_text', 'sub_text', 'button_text', 'link_url',
-		'link_target', 'bg_color', 'text_color', 'button_color',
+		'main_text', 'sub_text', 'link_url', 'link_target',
+		'bg_color', 'bg_color_2', 'text_color',
 		'show_close_button', 'dismiss_days',
 	];
 
