@@ -132,6 +132,10 @@ function fcb_sanitize_settings( mixed $raw ): array {
 		'bg_color_2'           => fcb_sanitize_hex_color( $raw['bg_color_2'] ?? '#312e81', '#312e81' ),
 		'text_color'           => fcb_sanitize_hex_color( $raw['text_color'] ?? '#f1f5f9', '#f1f5f9' ),
 
+		// --- Font sizes (px) ---
+		'main_text_size'       => fcb_sanitize_positive_int( $raw['main_text_size'] ?? 15, 15 ),
+		'sub_text_size'        => fcb_sanitize_positive_int( $raw['sub_text_size'] ?? 13, 13 ),
+
 		// --- Display conditions ---
 		'show_on'              => fcb_sanitize_select(
 			$raw['show_on'] ?? '',

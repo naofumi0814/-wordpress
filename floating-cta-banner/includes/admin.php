@@ -62,7 +62,9 @@ function fcb_register_settings(): void {
 	);
 
 	fcb_add_field( 'main_text',          __( 'メインテキスト',         'floating-cta-banner' ), 'fcb_field_main_text',          'fcb_section_content' );
+	fcb_add_field( 'main_text_size',     __( 'メインテキストサイズ',   'floating-cta-banner' ), 'fcb_field_main_text_size',     'fcb_section_content' );
 	fcb_add_field( 'sub_text',           __( 'サブテキスト',           'floating-cta-banner' ), 'fcb_field_sub_text',           'fcb_section_content' );
+	fcb_add_field( 'sub_text_size',      __( 'サブテキストサイズ',     'floating-cta-banner' ), 'fcb_field_sub_text_size',      'fcb_section_content' );
 	fcb_add_field( 'link_url',           __( 'リンクURL',              'floating-cta-banner' ), 'fcb_field_link_url',           'fcb_section_content' );
 	fcb_add_field( 'link_target',        __( 'リンクターゲット',       'floating-cta-banner' ), 'fcb_field_link_target',        'fcb_section_content' );
 
@@ -317,6 +319,23 @@ function fcb_field_main_text(): void {
 	<?php
 }
 
+function fcb_field_main_text_size(): void {
+	$val = (int) fcb_get_opt( 'main_text_size' );
+	if ( $val <= 0 ) {
+		$val = 15;
+	}
+	?>
+	<input type="number"
+		   id="fcb_main_text_size"
+		   name="<?php echo esc_attr( FCB_OPTION_KEY ); ?>[main_text_size]"
+		   value="<?php echo esc_attr( (string) $val ); ?>"
+		   min="8" max="72" step="1"
+		   class="small-text"
+	> px
+	<p class="description"><?php esc_html_e( '未入力の場合はデフォルト値（15px）で表示されます。', 'floating-cta-banner' ); ?></p>
+	<?php
+}
+
 function fcb_field_sub_text(): void {
 	$val = fcb_get_opt( 'sub_text' );
 	?>
@@ -327,6 +346,23 @@ function fcb_field_sub_text(): void {
 		   class="regular-text"
 	>
 	<p class="description"><?php esc_html_e( '任意。空欄の場合は表示されません。', 'floating-cta-banner' ); ?></p>
+	<?php
+}
+
+function fcb_field_sub_text_size(): void {
+	$val = (int) fcb_get_opt( 'sub_text_size' );
+	if ( $val <= 0 ) {
+		$val = 13;
+	}
+	?>
+	<input type="number"
+		   id="fcb_sub_text_size"
+		   name="<?php echo esc_attr( FCB_OPTION_KEY ); ?>[sub_text_size]"
+		   value="<?php echo esc_attr( (string) $val ); ?>"
+		   min="8" max="72" step="1"
+		   class="small-text"
+	> px
+	<p class="description"><?php esc_html_e( '未入力の場合はデフォルト値（13px）で表示されます。', 'floating-cta-banner' ); ?></p>
 	<?php
 }
 

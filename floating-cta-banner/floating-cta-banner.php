@@ -47,6 +47,8 @@ function fcb_get_settings(): array {
 		'bg_color'              => '#0f172a',  // グラデーション色1（左上）
 		'bg_color_2'            => '#312e81',  // グラデーション色2（右下）
 		'text_color'            => '#f1f5f9',
+		'main_text_size'        => 15,         // メインテキスト フォントサイズ (px)
+		'sub_text_size'         => 13,         // サブテキスト フォントサイズ (px)
 		'show_on'               => 'all',
 		'include_page_ids'      => '',
 		'include_category_ids'  => '',
@@ -327,12 +329,16 @@ function fcb_output_banner_html( array $opts, array $override = [] ): void {
 	$show_close  = ! empty( $o['show_close_button'] );
 	$has_link    = '' !== trim( $link_url );
 
-	// CSS カスタムプロパティ: グラデーション2色 + 文字色
+	// CSS カスタムプロパティ: グラデーション2色 + 文字色 + フォントサイズ
+	$main_size    = max( 1, (int) $o['main_text_size'] );
+	$sub_size     = max( 1, (int) $o['sub_text_size'] );
 	$inline_style = sprintf(
-		'--fcb-bg1:%s;--fcb-bg2:%s;--fcb-color:%s;',
+		'--fcb-bg1:%s;--fcb-bg2:%s;--fcb-color:%s;--fcb-main-size:%dpx;--fcb-sub-size:%dpx;',
 		esc_attr( $o['bg_color'] ),
 		esc_attr( $o['bg_color_2'] ),
-		esc_attr( $o['text_color'] )
+		esc_attr( $o['text_color'] ),
+		$main_size,
+		$sub_size
 	);
 
 	// リンクあり → <a> タグ全体、なし → <div>（クリック不可）

@@ -208,15 +208,13 @@ a.fcb-link-wrap:focus-visible {
 	border-radius: 4px;
 }
 
-/* 角カード: max-width を解除し、コンパクトな幅に */
+/* 角カード: max-width を解除し、コンパクトな幅に（中央揃えは維持） */
 #fcb-banner[data-position="bottom-left"] .fcb-link-wrap,
 #fcb-banner[data-position="bottom-right"] .fcb-link-wrap,
 #fcb-banner[data-position="top-left"] .fcb-link-wrap,
 #fcb-banner[data-position="top-right"] .fcb-link-wrap {
 	max-width: none;
-	padding: 18px 52px 18px 20px;
-	align-items: flex-start;
-	text-align: left;
+	padding: 18px 52px;
 }
 
 /* -----------------------------------------------------------------
@@ -224,7 +222,7 @@ a.fcb-link-wrap:focus-visible {
  * --------------------------------------------------------------- */
 .fcb-main-text {
 	display: block;
-	font-size: 0.9375rem;   /* 15px */
+	font-size: var(--fcb-main-size, 0.9375rem);   /* default 15px */
 	font-weight: 700;
 	letter-spacing: -0.01em;
 	color: var(--fcb-color, #f1f5f9);
@@ -233,7 +231,7 @@ a.fcb-link-wrap:focus-visible {
 
 .fcb-sub-text {
 	display: block;
-	font-size: 0.8125rem;   /* 13px */
+	font-size: var(--fcb-sub-size, 0.8125rem);   /* default 13px */
 	font-weight: 400;
 	letter-spacing: 0.01em;
 	color: var(--fcb-color, #f1f5f9);
@@ -316,7 +314,7 @@ a.fcb-link-wrap:focus-visible {
 	}
 
 	.fcb-main-text {
-		font-size: 0.875rem;
+		font-size: var(--fcb-main-size, 0.875rem);
 	}
 }
 
