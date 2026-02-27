@@ -95,10 +95,18 @@
 	}
 
 	/**
-	 * Return true if the banner was previously dismissed and the period
-	 * has NOT yet expired.
-	 * @returns {boolean}
+	 * Remove localStorage item, silently failing on error.
+	 * @param {string} key
 	 */
+	function lsRemove( key ) {
+		try {
+			localStorage.removeItem( key );
+		} catch {
+			// silently ignore (private browsing etc.)
+		}
+	}
+
+
 	function isDismissed() {
 		const raw = lsGet( STORAGE_KEY );
 
@@ -128,9 +136,9 @@
 	 */
 	function saveDismiss( days ) {
 		if ( days === 0 ) {
-			// 0日 = 記憶しない。fcb-hidden クラスで今回のページ閲覧中だけ非表示。
-			// localStorage には書かないのでリロード後に再表示される。
-			fcbLog( '③ dismiss保存スキップ: days=0 → リロードで再表示モード' );
+			// 0日 = 記憶しない。古いエントリも削除してリロードで必ず再表示。
+			lsRemove( STORAGE_KEY );
+			fcbLog( '③ dismiss保存スキップ: days=0 → リロードで再表示モード (localStorage クリア済み)' );
 			return;
 		}
 		const expiry = Date.now() + days * 24 * 60 * 60 * 1000;
@@ -259,11 +267,27 @@
 			return; // Banner not on this page
 		}
 
-		// Read dismiss days from data attribute (allows shortcode to override)
-		const dismissDays = parseInt( banner.dataset.dismissDays || String( cfg.dismissDays ), 10 );
+		// Read dismiss days from data attribute (allows shortcode to override).
+		// NOTE: dataset 値は常に文字列。"0" は JS で falsy なので || を使うと
+		//       意図せず cfg.dismissDays (デフォルト 7) にフォールバックしてしまう。
+		//       そのため明示的な空文字チェックで切り替える。
+		const rawDs      = banner.dataset.dismissDays;
+		const dismissDays = ( rawDs !== undefined && rawDs !== '' )
+			? parseInt( rawDs, 10 )
+			: parseInt( String( cfg.dismissDays ), 10 );
 
-		// If previously dismissed, do not show
-		if ( isDismissed() ) {
+		fcbLog( '③ dismissDays 決定', {
+			rawDs,
+			cfgDismissDays: cfg.dismissDays,
+			dismissDays,
+		} );
+
+		// dismiss_days=0 (常に): stale な localStorage エントリを削除して必ず表示。
+		// dismiss_days>0: 期間内に dismiss 済みならスキップ。
+		if ( dismissDays === 0 ) {
+			lsRemove( STORAGE_KEY );
+			fcbLog( '③ dismissDays=0 (常に): localStorage クリア → 必ず表示' );
+		} else if ( isDismissed() ) {
 			// Keep element in DOM but never show (CSS already hides it)
 			fcbLog( '③ dismiss有効期間内 → バナーを表示しない。リセットするには: localStorage.removeItem("fcb_dismissed")' );
 			return;
